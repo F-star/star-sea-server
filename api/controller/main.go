@@ -5,41 +5,53 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net/http"
 	"os"
+	"sort"
 	"time"
 )
 
-// the root of uploaded files
-var base = os.Getenv("STATIC_ROOT")
+type FileInfo struct {
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func GetFileList() ([]FileInfo, error) {
+	var base = os.Getenv("STATIC_DIR")
+	files, err := ioutil.ReadDir(base) // base is defined in upload.go file
+	if err != nil {
+		return []FileInfo{}, err
+	}
+	fileList := []FileInfo{}
+	for _, file := range files {
+		fileItem := FileInfo{
+			Name:      file.Name(),
+			UpdatedAt: file.ModTime(),
+		}
+		fileList = append(fileList, fileItem)
+	}
+	// TODO: sort by modtime.
+	sort.SliceStable(fileList, func(i, j int) bool {
+		return fileList[i].UpdatedAt.After(fileList[j].UpdatedAt)
+	})
+	return fileList, nil
+}
 
 func Upload(file *multipart.FileHeader) (string, error) {
+	var base = os.Getenv("STATIC_DIR")
 	src, err := file.Open()
 	if err != nil {
 		return "", err
 	}
 	defer src.Close()
-	n := fmt.Sprintf("%d - %s", time.Now().UTC().Unix(), file.Filename)
+	n := fmt.Sprintf("%d-%s", time.Now().UTC().Unix(), file.Filename)
 	dst := fmt.Sprintf("%s/%s", base, n)
 
 	out, err := os.Create(dst)
 	if err != nil {
-		fmt.Println("create fail")
 		return "", err
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
 	return n, err
-}
-
-func Download(n string) (string, []byte, error) {
-	dst := fmt.Sprintf("%s/%s", base, n)
-	b, err := ioutil.ReadFile(dst)
-	if err != nil {
-		return "", nil, err
-	}
-	m := http.DetectContentType(b[:512])
-
-	return m, b, nil
 }

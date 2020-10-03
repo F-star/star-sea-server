@@ -10,6 +10,8 @@ developing...
 before start, you need to create `.env` file with content like follow:
 
 ```
-GO_ENV = "development"                # point the environment
-STATIC_ROOT = "/Users/star-sea/static"  # the root dir of uploaded files
+GO_ENV = "development"                          # point the environment
+STATIC_DIR = "/Users/star-sea/static"           # the root dir of uploaded files
+STATIC_HOST = "https://static.yoursite.wang/"   # picture host
+TOKEN = "123abc"                                # token
 ```
